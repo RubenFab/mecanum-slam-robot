@@ -3,19 +3,19 @@ project(slam_robot_bringup)
 
 find_package(ament_cmake REQUIRED)
 
-# Package majoritairement déclaratif : on installe launch/, config/ et urdf/
-# dans le share du package.
+# Mostly declarative package: install launch/, config/ and urdf/ into the
+# package share directory.
 install(
   DIRECTORY launch config urdf
   DESTINATION share/${PROJECT_NAME}
 )
 
-# --- Nœud Python : serial_bridge ---
-# Un seul script exécutable (pas un module importable) : on l'installe dans
-# lib/${PROJECT_NAME} pour que `ros2 run slam_robot_bringup serial_bridge` le
-# trouve. RENAME supprime l'extension .py -> commande sans le suffixe.
-# (On garde ament_python_install_package pour un vrai package Python
-#  importable ; ici install(PROGRAMS ...) est plus propre.)
+# --- Python node: serial_bridge ---
+# A single executable script (not an importable module): install it into
+# lib/${PROJECT_NAME} so that `ros2 run slam_robot_bringup serial_bridge` can
+# find it. RENAME drops the .py extension -> command without the suffix.
+# (Use ament_python_install_package for a real importable Python package;
+#  here install(PROGRAMS ...) is cleaner.)
 install(
   PROGRAMS scripts/serial_bridge.py
   DESTINATION lib/${PROJECT_NAME}

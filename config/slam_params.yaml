@@ -1,23 +1,23 @@
-# Paramètres slam_toolbox en mode online_async — ROS2 Humble.
-# Réglés pour un petit robot indoor (~30 cm) SANS odométrie fiable :
-# premiers tests en poussant le robot à la main, l'estimation de pose
-# repose donc essentiellement sur le scan matching.
+# slam_toolbox parameters in online_async mode -- ROS2 Humble.
+# Tuned for a small indoor robot (~30 cm) WITHOUT reliable odometry:
+# early tests push the robot by hand, so pose estimation relies essentially
+# on scan matching.
 slam_toolbox:
   ros__parameters:
 
-    # ======================= FRAMES ET TOPICS =======================
-    odom_frame: odom            # Frame odométrie. Sans Arduino branché, une TF
-                                # identité odom->base_footprint est publiée par
+    # ======================= FRAMES AND TOPICS =======================
+    odom_frame: odom            # Odometry frame. With no Arduino connected, an
+                                # identity TF odom->base_footprint is published by
                                 # slam.launch.py (publish_fake_odom:=true).
     map_frame: map
-    base_frame: base_footprint  # Frame de base du robot (cf. URDF)
-    scan_topic: /scan           # Topic publié par le driver YDLIDAR
+    base_frame: base_footprint  # Robot base frame (see URDF)
+    scan_topic: /scan           # Topic published by the YDLIDAR driver
 
-    mode: mapping               # mapping = construction de carte
-                                # (localization = se localiser sur carte existante)
-    use_map_saver: true         # Active le service de sauvegarde de carte
+    mode: mapping               # mapping = build a map
+                                # (localization = localize on an existing map)
+    use_map_saver: true         # Enable the map saving service
 
-    # ======================= SOLVEUR (Ceres) =======================
+    # ======================= SOLVER (Ceres) =======================
     solver_plugin: solver_plugins::CeresSolver
     ceres_linear_solver: SPARSE_NORMAL_CHOLESKY
     ceres_preconditioner: SCHUR_JACOBI
@@ -25,40 +25,39 @@ slam_toolbox:
     ceres_dogleg_type: TRADITIONAL_DOGLEG
     ceres_loss_function: None
 
-    # ======================= GÉNÉRAL =======================
-    debug_logging: true         # TEMP diagnostic : passe le logger slam_toolbox en Debug
-                                # (remettre false une fois la carte fonctionnelle)
-    throttle_scans: 1           # 1 = traiter tous les scans (le X2 à ~7 Hz est déjà lent)
-    map_update_interval: 2.0    # Période (s) de publication de la carte — 2 s suffit en test
-    resolution: 0.05            # Résolution de la grille (m/cellule) — 5 cm, bon compromis indoor
-    max_laser_range: 12.0       # Portée max du X2 (m) — doit matcher range_max du driver
-    minimum_time_interval: 0.2  # Temps mini (s) entre deux scans traités
-    transform_publish_period: 0.02  # Période (s) de publication de map->odom (50 Hz)
-    transform_timeout: 0.5      # Tolérance (s) d'attente des TF — large car notre TF
-                                # odom est basique ; réduire à 0.2 avec la vraie odométrie
+    # ======================= GENERAL =======================
+    debug_logging: true         # TEMP diagnostic: sets the slam_toolbox logger to Debug
+                                # (set back to false once the map works)
+    throttle_scans: 1           # 1 = process every scan (the X2 at ~7 Hz is already slow)
+    map_update_interval: 2.0    # Map publish period (s) -- 2 s is enough for testing
+    resolution: 0.05            # Grid resolution (m/cell) -- 5 cm, good indoor tradeoff
+    max_laser_range: 12.0       # Max range of the X2 (m) -- must match range_max of the driver
+    minimum_time_interval: 0.2  # Minimum time (s) between two processed scans
+    transform_publish_period: 0.02  # Publish period (s) of map->odom (50 Hz)
+    transform_timeout: 0.5      # TF wait tolerance (s) -- large because our odom TF
+                                # is basic; reduce to 0.2 with real odometry
     tf_buffer_duration: 30.0
-    stack_size_to_use: 40000000 # Pile mémoire pour la sérialisation des grandes cartes
+    stack_size_to_use: 40000000 # Memory stack for serializing large maps
     enable_interactive_mode: false
 
     # ======================= SCAN MATCHING =======================
-    use_scan_matching: true     # INDISPENSABLE ici : c'est le scan matching qui
-                                # estime le déplacement puisque l'odométrie est
-                                # absente/faible
-    use_scan_barycenter: true   # Utilise le barycentre du scan pour le chaînage
+    use_scan_matching: true     # ESSENTIAL here: scan matching is what estimates
+                                # the motion since odometry is absent/weak
+    use_scan_barycenter: true   # Use the scan barycenter for chaining
 
-    # Seuils de déclenchement d'un nouveau nœud dans le graphe :
-    # valeurs BASSES pour créer des nœuds souvent — avec une odométrie nulle,
-    # deux scans successifs doivent rester très recouvrants pour que le
-    # matching converge. Robot poussé à la main => avancer LENTEMENT.
+    # Thresholds for creating a new node in the graph:
+    # LOW values to create nodes often -- with zero odometry, two successive
+    # scans must stay highly overlapping for the matching to converge.
+    # Robot pushed by hand => move SLOWLY.
     minimum_travel_distance: 0.1    # m
-    minimum_travel_heading: 0.15    # rad (~8.5°)
+    minimum_travel_heading: 0.15    # rad (~8.5 deg)
 
     scan_buffer_size: 10
     scan_buffer_maximum_scan_distance: 10.0
     link_match_minimum_response_fine: 0.1
     link_scan_maximum_distance: 1.5
 
-    # ======================= FERMETURE DE BOUCLE =======================
+    # ======================= LOOP CLOSURE =======================
     do_loop_closing: true
     loop_search_maximum_distance: 3.0
     loop_match_minimum_chain_size: 10
@@ -66,10 +65,10 @@ slam_toolbox:
     loop_match_minimum_response_coarse: 0.35
     loop_match_minimum_response_fine: 0.45
 
-    # ======================= FENÊTRE DE CORRÉLATION =======================
-    # Taille (m) de la zone de recherche du scan matcher autour de la pose
-    # prédite par l'odométrie. Sans odométrie la prédiction est mauvaise :
-    # augmenter à 0.8-1.0 si la carte "saute" — au prix de plus de CPU.
+    # ======================= CORRELATION WINDOW =======================
+    # Size (m) of the scan matcher search area around the pose predicted by
+    # odometry. Without odometry the prediction is poor: increase to 0.8-1.0
+    # if the map "jumps" -- at the cost of more CPU.
     correlation_search_space_dimension: 0.5
     correlation_search_space_resolution: 0.01
     correlation_search_space_smear_deviation: 0.1
@@ -78,11 +77,11 @@ slam_toolbox:
     loop_search_space_resolution: 0.05
     loop_search_space_smear_deviation: 0.03
 
-    # ======================= PÉNALITÉS DU SCAN MATCHER =======================
-    # Pénalités appliquées quand la solution du scan matching s'écarte de la
-    # prédiction odométrique. Valeurs BASSES = on fait confiance au scan
-    # matching plutôt qu'à l'odométrie (notre cas). Remonter vers les valeurs
-    # par défaut (0.5 / 1.0) quand l'odométrie Arduino sera fiable.
+    # ======================= SCAN MATCHER PENALTIES =======================
+    # Penalties applied when the scan matching solution departs from the
+    # odometry prediction. LOW values = trust scan matching rather than
+    # odometry (our case). Raise toward the default values (0.5 / 1.0) once
+    # the Arduino odometry is reliable.
     distance_variance_penalty: 0.3
     angle_variance_penalty: 0.5
 

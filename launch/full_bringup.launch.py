@@ -1,20 +1,20 @@
-# Bringup complet : robot_state_publisher (URDF) + LiDAR + SLAM.
-# Cible : ROS2 Humble.
+# Full bringup: robot_state_publisher (URDF) + LiDAR + SLAM.
+# Target: ROS2 Humble.
 #
-# Usage :
+# Usage:
 #   ros2 launch slam_robot_bringup full_bringup.launch.py
 #   ros2 launch slam_robot_bringup full_bringup.launch.py use_slam:=false
 #   ros2 launch slam_robot_bringup full_bringup.launch.py use_rsp:=false
 #
-# Arguments :
-#   use_rsp   (true)  : robot_state_publisher avec l'URDF xacro
-#   use_lidar (true)  : driver YDLIDAR X2
+# Arguments:
+#   use_rsp   (true)  : robot_state_publisher with the xacro URDF
+#   use_lidar (true)  : YDLIDAR X2 driver
 #   use_slam  (true)  : slam_toolbox online async
-#   publish_fake_odom (true) : TF identité odom->base_footprint
-#                              (false quand l'Arduino publie l'odométrie)
+#   publish_fake_odom (true) : identity TF odom->base_footprint
+#                              (false when the Arduino publishes odometry)
 #
-# Quand use_rsp:=true, la TF statique base_link->laser_frame du launch LiDAR
-# est automatiquement désactivée : c'est l'URDF qui fournit la transformée.
+# When use_rsp:=true, the static TF base_link->laser_frame from the LiDAR launch
+# is automatically disabled: the URDF provides the transform.
 
 import os
 
@@ -38,27 +38,27 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration('use_sim_time')
     publish_fake_odom = LaunchConfiguration('publish_fake_odom')
 
-    # Génération de la description du robot à partir du xacro.
-    # ParameterValue(..., value_type=str) est nécessaire sur Humble pour que
-    # le résultat de la commande xacro soit bien traité comme une chaîne.
+    # Generate the robot description from the xacro.
+    # ParameterValue(..., value_type=str) is required on Humble so that the
+    # output of the xacro command is treated as a string.
     robot_description = ParameterValue(
         Command(['xacro ', xacro_file]),
         value_type=str)
 
     return LaunchDescription([
         DeclareLaunchArgument('use_rsp', default_value='true',
-                              description='Lancer robot_state_publisher (URDF)'),
+                              description='Start robot_state_publisher (URDF)'),
         DeclareLaunchArgument('use_lidar', default_value='true',
-                              description='Lancer le driver YDLIDAR X2'),
+                              description='Start the YDLIDAR X2 driver'),
         DeclareLaunchArgument('use_slam', default_value='true',
-                              description='Lancer slam_toolbox'),
+                              description='Start slam_toolbox'),
         DeclareLaunchArgument('use_sim_time', default_value='false',
-                              description='Utiliser l\'horloge simulée'),
+                              description='Use the simulated clock'),
         DeclareLaunchArgument('publish_fake_odom', default_value='true',
-                              description='TF identité odom->base_footprint '
-                                          '(false quand l\'Arduino est branché)'),
+                              description='Identity TF odom->base_footprint '
+                                          '(false when the Arduino is connected)'),
 
-        # --- robot_state_publisher : publie les TF de l'URDF ---
+        # --- robot_state_publisher: publishes the URDF TFs ---
         Node(
             package='robot_state_publisher',
             executable='robot_state_publisher',
@@ -72,8 +72,8 @@ def generate_launch_description():
         ),
 
         # --- LiDAR ---
-        # use_static_tf = NOT use_rsp : la TF provisoire base_link->laser_frame
-        # n'est publiée que si l'URDF ne l'est pas.
+        # use_static_tf = NOT use_rsp: the provisional TF base_link->laser_frame
+        # is published only if the URDF is not.
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
                 os.path.join(pkg_share, 'launch', 'lidar.launch.py')),

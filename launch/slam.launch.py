@@ -1,17 +1,17 @@
-# Lancement de slam_toolbox (online async) — ROS2 Humble.
+# Launch slam_toolbox (online async) -- ROS2 Humble.
 #
-# Usage :
+# Usage:
 #   ros2 launch slam_robot_bringup slam.launch.py
 #   ros2 launch slam_robot_bringup slam.launch.py publish_fake_odom:=false
 #
-# publish_fake_odom (défaut true) : publie une TF statique IDENTITÉ
-# odom -> base_footprint. C'est le mode "sans Arduino" : slam_toolbox exige
-# une chaîne TF odom->base complète ; avec cette TF identité, tout le
-# déplacement du robot est absorbé par la correction map->odom calculée par
-# le scan matching. Suffisant pour les tests en poussant le robot à la main.
+# publish_fake_odom (default true): publishes a static IDENTITY TF
+# odom -> base_footprint. This is the "no Arduino" mode: slam_toolbox requires
+# a complete odom->base TF chain; with this identity TF, all of the robot's
+# motion is absorbed by the map->odom correction computed by scan matching.
+# Good enough for tests where the robot is pushed by hand.
 #
-# IMPORTANT : passer publish_fake_odom:=false dès que l'Arduino (micro-ROS)
-# publie la vraie TF odom->base_footprint, sinon conflit de TF.
+# IMPORTANT: pass publish_fake_odom:=false as soon as the Arduino (serial
+# bridge) publishes the real odom->base_footprint TF, otherwise TF conflict.
 
 import os
 
@@ -34,14 +34,14 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'use_sim_time',
             default_value='false',
-            description='Utiliser l\'horloge simulée (Gazebo)'),
+            description='Use the simulated clock (Gazebo)'),
         DeclareLaunchArgument(
             'publish_fake_odom',
             default_value='true',
-            description='Publier une TF identité odom->base_footprint '
-                        '(mettre false quand l\'Arduino publie la vraie odométrie)'),
+            description='Publish an identity TF odom->base_footprint '
+                        '(set false when the Arduino publishes real odometry)'),
 
-        # --- TF identité odom -> base_footprint (mode sans odométrie) ---
+        # --- Identity TF odom -> base_footprint (no-odometry mode) ---
         Node(
             package='tf2_ros',
             executable='static_transform_publisher',
@@ -56,9 +56,9 @@ def generate_launch_description():
             ],
         ),
 
-        # --- slam_toolbox en mode online asynchrone ---
-        # "async" = traite le dernier scan disponible sans bloquer si le CPU
-        # ne suit pas — recommandé sur une machine embarquée comme le CAPA55R.
+        # --- slam_toolbox in online asynchronous mode ---
+        # "async" = process the latest available scan without blocking if the
+        # CPU cannot keep up -- recommended on an embedded machine like the CAPA55R.
         Node(
             package='slam_toolbox',
             executable='async_slam_toolbox_node',

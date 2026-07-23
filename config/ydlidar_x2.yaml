@@ -1,40 +1,40 @@
-# Configuration du YDLIDAR X2 (boîtier adaptateur UART/USB).
-# Basée sur le profil officiel X2.yaml du package ydlidar_ros2_driver,
-# copiée ici pour pouvoir la modifier sans toucher au package du driver.
+# YDLIDAR X2 configuration (UART/USB adapter box).
+# Based on the official X2.yaml profile from the ydlidar_ros2_driver package,
+# copied here so it can be edited without touching the driver package.
 ydlidar_ros2_driver_node:
   ros__parameters:
-    # --- Connexion série ---
-    port: /dev/ttyUSB0        # Port USB (vérifier avec : ls /dev/ttyUSB*)
-    baudrate: 115200          # Baudrate fixe du X2
-    lidar_type: 1             # 1 = LiDAR triangulation (famille X2/X4)
-    device_type: 0            # 0 = connexion série
-    isSingleChannel: true     # Le X2 est mono-canal (pas de commande moteur retour)
-    auto_reconnect: true      # Reconnexion auto si le port décroche
+    # --- Serial connection ---
+    port: /dev/ttyUSB0        # USB port (check with: ls /dev/ttyUSB*)
+    baudrate: 115200          # Fixed baudrate of the X2
+    lidar_type: 1             # 1 = triangulation LiDAR (X2/X4 family)
+    device_type: 0            # 0 = serial connection
+    isSingleChannel: true     # The X2 is single-channel (no motor command feedback)
+    auto_reconnect: true      # Auto-reconnect if the port drops
 
-    # --- Échantillonnage ---
-    sample_rate: 3            # 3 kHz = 3000 échantillons/s (fixe pour le X2)
+    # --- Sampling ---
+    sample_rate: 3            # 3 kHz = 3000 samples/s (fixed for the X2)
     abnormal_check_count: 4
-    fixed_resolution: true    # Résolution angulaire fixe dans le message /scan
+    fixed_resolution: true    # Fixed angular resolution in the /scan message
 
     # --- Orientation ---
-    reversion: false          # true = ajoute 180° (si le LiDAR est monté à l'envers)
-    inverted: false           # true = inverse le sens de rotation des angles
-    support_motor_dtr: true   # Contrôle du moteur via la broche DTR (adaptateur X2)
+    reversion: false          # true = adds 180 deg (if the LiDAR is mounted upside down)
+    inverted: false           # true = reverses the angle rotation direction
+    support_motor_dtr: true   # Motor control via the DTR pin (X2 adapter)
 
-    # --- Intensité (non supportée par le X2) ---
+    # --- Intensity (not supported by the X2) ---
     intensity: false
     intensity_bit: 0
 
-    # --- Champ de vision et portée ---
-    angle_min: -180.0         # Champ complet 360°
+    # --- Field of view and range ---
+    angle_min: -180.0         # Full 360 deg field
     angle_max: 180.0
-    range_min: 0.1            # Portée mini du X2 (m)
-    range_max: 12.0           # Portée maxi du X2 (m) — reportée dans slam_params.yaml
-    ignore_array: ""          # Secteurs angulaires à masquer, ex "-90,-80" (câbles, poteaux)
+    range_min: 0.1            # Minimum range of the X2 (m)
+    range_max: 12.0           # Maximum range of the X2 (m) -- mirrored in slam_params.yaml
+    ignore_array: ""          # Angular sectors to mask, e.g. "-90,-80" (cables, posts)
 
-    # --- Divers ---
-    frequency: 10.0           # Fréquence de rotation cible (Hz) — le X2 mono-canal
-                              # tourne en réalité à sa vitesse propre (~6-8 Hz)
-    frame_id: laser_frame     # Frame TF des scans — doit correspondre à l'URDF
+    # --- Misc ---
+    frequency: 10.0           # Target rotation frequency (Hz) -- the single-channel X2
+                              # actually spins at its own speed (~6-8 Hz)
+    frame_id: laser_frame     # TF frame of the scans -- must match the URDF
     invalid_range_is_inf: false
     debug: false

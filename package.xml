@@ -4,26 +4,26 @@
   <name>slam_robot_bringup</name>
   <version>0.1.0</version>
   <description>
-    Bringup du robot SLAM Mecanum : URDF, launch files (LiDAR YDLIDAR X2,
-    slam_toolbox) et configurations (SLAM, Nav2). Cible : ROS2 Humble.
+    Bringup for the Mecanum SLAM robot: URDF, launch files (YDLIDAR X2 LiDAR,
+    slam_toolbox) and configuration (SLAM, Nav2). Target: ROS2 Humble.
   </description>
   <maintainer email="fabiouxr@gmail.com">Ruben Fabioux</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <!-- Dépendances d'exécution : les nœuds lancés par les launch files -->
+  <!-- Runtime dependencies: the nodes started by the launch files -->
   <exec_depend>robot_state_publisher</exec_depend>
   <exec_depend>slam_toolbox</exec_depend>
   <exec_depend>xacro</exec_depend>
   <exec_depend>tf2_ros</exec_depend>
   <exec_depend>ydlidar_ros2_driver</exec_depend>
 
-  <!-- Dépendances du nœud Python serial_bridge -->
+  <!-- Dependencies of the serial_bridge Python node -->
   <exec_depend>rclpy</exec_depend>
   <exec_depend>nav_msgs</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
-  <!-- python3-serial : clé rosdep -> paquet système python3-serial (pyserial) -->
+  <!-- python3-serial: rosdep key -> system package python3-serial (pyserial) -->
   <exec_depend>python3-serial</exec_depend>
 
   <export>

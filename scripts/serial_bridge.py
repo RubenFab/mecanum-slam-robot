@@ -1,31 +1,31 @@
 #!/usr/bin/env python3
 # ============================================================================
-#  serial_bridge.py — Pont série ROS2 <-> Arduino Mega (robot SLAM Mecanum)
+#  serial_bridge.py -- ROS2 <-> Arduino Mega serial bridge (Mecanum SLAM robot)
 # ============================================================================
 #
-#  Rôle : faire le lien entre le graphe ROS2 (sur le CAPA55R) et le firmware
-#  de l'Arduino Mega, qui communique par liaison série USB en texte simple.
+#  Role: link the ROS2 graph (on the CAPA55R) to the Arduino Mega firmware,
+#  which communicates over the USB serial link in plain text.
 #
-#     /cmd_vel  (geometry_msgs/Twist)  ->  série  "V,vx,vy,wz\n"
-#     série  "O,x,y,th,vx,vy,wz\n"     ->  /odom  (nav_msgs/Odometry)
+#     /cmd_vel  (geometry_msgs/Twist)  ->  serial  "V,vx,vy,wz\n"
+#     serial  "O,x,y,th,vx,vy,wz\n"    ->  /odom  (nav_msgs/Odometry)
 #                                      ->  TF  odom -> base_footprint
 #
-#  Conventions IMPOSÉES par la config slam_toolbox (slam_params.yaml) :
-#     - topic odométrie : /odom
+#  Conventions IMPOSED by the slam_toolbox config (slam_params.yaml):
+#     - odometry topic : /odom
 #     - odom_frame  : odom
 #     - base_frame  : base_footprint
-#     - topic consigne : /cmd_vel
+#     - command topic : /cmd_vel
 #
-#  ⚠️  CONFLIT DE TF À ÉVITER
-#  Ce nœud publie la TF  odom -> base_footprint.
-#  La slam.launch.py publie AUSSI cette TF (identité) quand
-#  publish_fake_odom:=true (son défaut).
-#  => Quand tu lances CE pont, lance TOUJOURS le SLAM avec :
+#  WARNING: TF CONFLICT TO AVOID
+#  This node publishes the TF  odom -> base_footprint.
+#  slam.launch.py ALSO publishes this TF (identity) when
+#  publish_fake_odom:=true (its default).
+#  => When you start THIS bridge, ALWAYS start SLAM with:
 #         ros2 launch slam_robot_bringup slam.launch.py publish_fake_odom:=false
-#  sinon deux sources publient la même TF et la carte part en vrille.
+#  otherwise two sources publish the same TF and the map breaks.
 #
-#  Lancement :
-#     ros2 run slam_robot_bringup serial_bridge          (port par défaut)
+#  Launch:
+#     ros2 run slam_robot_bringup serial_bridge          (default port)
 #     ros2 run slam_robot_bringup serial_bridge --ros-args -p port:=/dev/ttyACM0
 # ============================================================================
 
@@ -44,7 +44,7 @@ from tf2_ros import TransformBroadcaster
 
 
 def yaw_to_quaternion(yaw: float) -> Quaternion:
-    """Convertit un angle de lacet (rad) en quaternion (rotation plane autour de Z)."""
+    """Convert a yaw angle (rad) into a quaternion (planar rotation about Z)."""
     q = Quaternion()
     q.z = math.sin(yaw / 2.0)
     q.w = math.cos(yaw / 2.0)
@@ -55,12 +55,12 @@ class SerialBridge(Node):
     def __init__(self):
         super().__init__('serial_bridge')
 
-        # ------------------ Paramètres ------------------
+        # ------------------ Parameters ------------------
         self.declare_parameter('port', '/dev/ttyACM0')
         self.declare_parameter('baudrate', 115200)
         self.declare_parameter('odom_frame', 'odom')
         self.declare_parameter('base_frame', 'base_footprint')
-        self.declare_parameter('publish_tf', True)  # mettre False si un autre nœud publie la TF
+        self.declare_parameter('publish_tf', True)  # set False if another node publishes the TF
 
         port = self.get_parameter('port').value
         baud = self.get_parameter('baudrate').value
@@ -68,12 +68,12 @@ class SerialBridge(Node):
         self.base_frame = self.get_parameter('base_frame').value
         self.publish_tf = self.get_parameter('publish_tf').value
 
-        # ------------------ Liaison série ------------------
+        # ------------------ Serial link ------------------
         try:
             self.ser = serial.Serial(port, baud, timeout=0.1)
-            self.get_logger().info(f'Port série ouvert : {port} @ {baud} bauds')
+            self.get_logger().info(f'Serial port opened: {port} @ {baud} baud')
         except serial.SerialException as e:
-            self.get_logger().error(f'Impossible d\'ouvrir {port} : {e}')
+            self.get_logger().error(f'Cannot open {port}: {e}')
             raise
 
         # ------------------ Publishers / Subscribers ------------------
@@ -82,30 +82,30 @@ class SerialBridge(Node):
         self.cmd_sub = self.create_subscription(Twist, 'cmd_vel', self.cmd_cb, qos)
         self.tf_broadcaster = TransformBroadcaster(self)
 
-        # ------------------ Lecture série en thread séparé ------------------
+        # ------------------ Serial read in a separate thread ------------------
         self._buf = b''
         self._running = True
         self._reader = threading.Thread(target=self.read_loop, daemon=True)
         self._reader.start()
 
-        self.get_logger().info('serial_bridge prêt. En attente de /cmd_vel et de trames "O,...".')
+        self.get_logger().info('serial_bridge ready. Waiting for /cmd_vel and "O,..." frames.')
         if self.publish_tf:
             self.get_logger().warn(
-                'publish_tf=True : ce nœud publie odom->base_footprint. '
-                'Lance le SLAM avec publish_fake_odom:=false pour éviter un conflit de TF.')
+                'publish_tf=True: this node publishes odom->base_footprint. '
+                'Start SLAM with publish_fake_odom:=false to avoid a TF conflict.')
 
-    # ---------- /cmd_vel -> série ----------
+    # ---------- /cmd_vel -> serial ----------
     def cmd_cb(self, msg: Twist):
         vx = msg.linear.x
-        vy = msg.linear.y      # non nul seulement en holonome (Mecanum)
+        vy = msg.linear.y      # non-zero only in holonomic mode (Mecanum)
         wz = msg.angular.z
         line = f'V,{vx:.4f},{vy:.4f},{wz:.4f}\n'
         try:
             self.ser.write(line.encode('ascii'))
         except serial.SerialException as e:
-            self.get_logger().error(f'Écriture série échouée : {e}')
+            self.get_logger().error(f'Serial write failed: {e}')
 
-    # ---------- série -> /odom + TF ----------
+    # ---------- serial -> /odom + TF ----------
     def read_loop(self):
         while self._running:
             try:
@@ -121,7 +121,7 @@ class SerialBridge(Node):
 
     def handle_line(self, line: str):
         if not line or line[0] != 'O':
-            return  # on ignore les trames debug "E,..." et le bruit
+            return  # ignore the "E,..." debug frames and noise
         parts = line.split(',')
         if len(parts) != 7:
             return

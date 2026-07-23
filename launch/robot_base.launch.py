@@ -1,20 +1,20 @@
-# Lancement du pont série ROS2 <-> Arduino Mega (nœud serial_bridge) — ROS2 Humble.
+# Launch the ROS2 <-> Arduino Mega serial bridge (serial_bridge node) -- ROS2 Humble.
 #
-# Usage :
+# Usage:
 #   ros2 launch slam_robot_bringup robot_base.launch.py
 #   ros2 launch slam_robot_bringup robot_base.launch.py port:=/dev/ttyACM1
 #
-# Ce launch démarre le nœud serial_bridge, qui :
-#   - souscrit /cmd_vel (geometry_msgs/Twist) et l'envoie à l'Arduino,
-#   - publie /odom (nav_msgs/Odometry) à partir des trames "O,..." de l'Arduino,
-#   - publie la TF  odom -> base_footprint.
+# This launch starts the serial_bridge node, which:
+#   - subscribes to /cmd_vel (geometry_msgs/Twist) and sends it to the Arduino,
+#   - publishes /odom (nav_msgs/Odometry) from the Arduino's "O,..." frames,
+#   - publishes the TF  odom -> base_footprint.
 #
-# ⚠️  CONFLIT DE TF — À LIRE
-# serial_bridge publie odom -> base_footprint (publish_tf=true par défaut).
-# slam.launch.py publie AUSSI cette TF (identité) quand publish_fake_odom:=true
-# (son défaut). Il faut donc TOUJOURS lancer le SLAM avec :
+# WARNING: TF CONFLICT -- READ THIS
+# serial_bridge publishes odom -> base_footprint (publish_tf=true by default).
+# slam.launch.py ALSO publishes this TF (identity) when publish_fake_odom:=true
+# (its default). So ALWAYS launch SLAM with:
 #     ros2 launch slam_robot_bringup slam.launch.py publish_fake_odom:=false
-# quand ce pont tourne, sinon deux sources publient la même TF.
+# when this bridge is running, otherwise two sources publish the same TF.
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
@@ -31,16 +31,16 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'port',
             default_value='/dev/ttyACM0',
-            description='Port série de l\'Arduino Mega'),
+            description='Arduino Mega serial port'),
         DeclareLaunchArgument(
             'baudrate',
             default_value='115200',
-            description='Débit de la liaison série (bauds)'),
+            description='Serial link baud rate'),
         DeclareLaunchArgument(
             'publish_tf',
             default_value='true',
-            description='Publier la TF odom->base_footprint depuis l\'odométrie '
-                        '(mettre false si une autre source publie cette TF)'),
+            description='Publish the odom->base_footprint TF from odometry '
+                        '(set false if another source publishes this TF)'),
 
         Node(
             package='slam_robot_bringup',

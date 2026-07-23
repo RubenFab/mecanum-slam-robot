@@ -1,19 +1,19 @@
-# Configuration Nav2 minimale pour robot Mecanum HOLONOME (~30 cm) — ROS2 Humble.
-# Base saine, PAS optimisée : à affiner sur le robot réel.
+# Minimal Nav2 configuration for a HOLONOMIC Mecanum robot (~30 cm) -- ROS2 Humble.
+# Sane base, NOT optimized: to be refined on the real robot.
 #
-# Prérequis :
+# Prerequisites:
 #   sudo apt install ros-humble-navigation2 ros-humble-nav2-bringup \
 #                    ros-humble-nav2-mppi-controller
 #
-# Lancement type (sur une carte sauvegardée) :
+# Typical launch (on a saved map):
 #   ros2 launch nav2_bringup bringup_launch.py \
-#     map:=$HOME/maps/ma_carte.yaml \
+#     map:=$HOME/maps/my_map.yaml \
 #     params_file:=$(ros2 pkg prefix slam_robot_bringup)/share/slam_robot_bringup/config/nav2_params.yaml
 #
-# Points clés holonome :
+# Key holonomic points:
 #   - AMCL       : OmniMotionModel
-#   - Controller : MPPI avec motion_model "Omni" (vitesse latérale vy autorisée)
-#     Alternative sans package supplémentaire : DWB avec min_vel_y/max_vel_y ≠ 0.
+#   - Controller : MPPI with motion_model "Omni" (lateral velocity vy allowed)
+#     Alternative without an extra package: DWB with min_vel_y/max_vel_y != 0.
 
 amcl:
   ros__parameters:
@@ -22,46 +22,46 @@ amcl:
     odom_frame_id: odom
     global_frame_id: map
     scan_topic: /scan
-    # Modèle de mouvement OMNIDIRECTIONNEL (Mecanum)
+    # OMNIDIRECTIONAL motion model (Mecanum)
     robot_model_type: "nav2_amcl::OmniMotionModel"
-    # Bruits du modèle (défauts raisonnables, à ajuster si la localisation dérive)
+    # Model noises (reasonable defaults, adjust if localization drifts)
     alpha1: 0.2
     alpha2: 0.2
     alpha3: 0.2
     alpha4: 0.2
     alpha5: 0.2
-    # Portées du laser : cohérentes avec le YDLIDAR X2
+    # Laser ranges: consistent with the YDLIDAR X2
     laser_max_range: 12.0
     laser_min_range: 0.1
     laser_model_type: "likelihood_field"
     max_beams: 60
-    # Population de particules
+    # Particle population
     min_particles: 500
     max_particles: 2000
-    # Seuils de mise à jour du filtre (petit robot => seuils bas)
+    # Filter update thresholds (small robot => low thresholds)
     update_min_d: 0.10        # m
     update_min_a: 0.15        # rad
     resample_interval: 1
-    transform_tolerance: 0.5  # Large tant que l'odométrie Arduino n'est pas calibrée
+    transform_tolerance: 0.5  # Large while the Arduino odometry is not calibrated
     recovery_alpha_slow: 0.0
     recovery_alpha_fast: 0.0
-    set_initial_pose: false   # Pose initiale à donner dans RViz ("2D Pose Estimate")
+    set_initial_pose: false   # Initial pose to be given in RViz ("2D Pose Estimate")
 
 bt_navigator:
   ros__parameters:
     use_sim_time: false
     global_frame: map
     robot_base_frame: base_footprint
-    odom_topic: /odom         # Publié par l'Arduino via micro-ROS
+    odom_topic: /odom         # Published by the Arduino via the serial bridge
     bt_loop_duration: 10
     default_server_timeout: 20
-    # Les arbres de comportement par défaut de nav2_bt_navigator conviennent
+    # The default nav2_bt_navigator behavior trees are fine
 
 controller_server:
   ros__parameters:
     use_sim_time: false
     controller_frequency: 20.0
-    # Holonome : NE PAS filtrer la vitesse latérale vy
+    # Holonomic: do NOT filter the lateral velocity vy
     min_x_velocity_threshold: 0.001
     min_y_velocity_threshold: 0.001
     min_theta_velocity_threshold: 0.001
@@ -78,33 +78,33 @@ controller_server:
     general_goal_checker:
       plugin: "nav2_controller::SimpleGoalChecker"
       stateful: true
-      xy_goal_tolerance: 0.10   # m — tolérance d'arrivée en position
-      yaw_goal_tolerance: 0.15  # rad — tolérance d'arrivée en orientation
+      xy_goal_tolerance: 0.10   # m -- position arrival tolerance
+      yaw_goal_tolerance: 0.15  # rad -- orientation arrival tolerance
 
-    # --- Controller MPPI en mode omnidirectionnel ---
+    # --- MPPI controller in omnidirectional mode ---
     FollowPath:
       plugin: "nav2_mppi_controller::MPPIController"
-      motion_model: "Omni"      # LE réglage clé pour Mecanum : autorise vy
+      motion_model: "Omni"      # THE key setting for Mecanum: allows vy
       time_steps: 56
       model_dt: 0.05
-      batch_size: 1000          # Réduit (défaut 2000) pour ménager le CPU du CAPA55R
-      # Écarts-types d'échantillonnage des vitesses
+      batch_size: 1000          # Reduced (default 2000) to spare the CAPA55R CPU
+      # Velocity sampling standard deviations
       vx_std: 0.2
-      vy_std: 0.2               # ≠ 0 uniquement en holonome
+      vy_std: 0.2               # != 0 only in holonomic mode
       wz_std: 0.4
-      # Limites de vitesse — TODO: À MESURER/VALIDER avec les moteurs JGB37-520
+      # Velocity limits -- TODO: MEASURE/VALIDATE with the JGB37-520 motors
       vx_max: 0.3               # m/s
-      vx_min: -0.15             # m/s (marche arrière)
-      vy_max: 0.3               # m/s (translation latérale)
+      vx_min: -0.15             # m/s (reverse)
+      vy_max: 0.3               # m/s (lateral translation)
       wz_max: 1.0               # rad/s
       iteration_count: 1
       prune_distance: 1.7
       transform_tolerance: 0.5
       temperature: 0.3
       gamma: 0.015
-      visualize: false          # true pour déboguer les trajectoires dans RViz
-      # Critiques : PreferForwardCritic volontairement ABSENT — un robot
-      # holonome n'a pas de sens "préféré" de déplacement.
+      visualize: false          # true to debug the trajectories in RViz
+      # Critics: PreferForwardCritic intentionally ABSENT -- a holonomic robot
+      # has no "preferred" direction of travel.
       critics: ["ConstraintCritic", "ObstaclesCritic", "GoalCritic",
                 "GoalAngleCritic", "PathAlignCritic", "PathFollowCritic",
                 "PathAngleCritic"]
@@ -154,12 +154,12 @@ local_costmap:
       robot_base_frame: base_footprint
       update_frequency: 5.0
       publish_frequency: 2.0
-      rolling_window: true      # Fenêtre glissante centrée sur le robot
-      width: 3                  # m — 3x3 m suffit pour un petit robot indoor
+      rolling_window: true      # Sliding window centered on the robot
+      width: 3                  # m -- 3x3 m is enough for a small indoor robot
       height: 3
-      resolution: 0.05          # Même résolution que la carte SLAM
-      # Rayon du robot : ~30 cm de large => 0.15 m + marge
-      robot_radius: 0.18        # TODO: À MESURER (m, diagonale châssis/2 + marge)
+      resolution: 0.05          # Same resolution as the SLAM map
+      # Robot radius: ~30 cm wide => 0.15 m + margin
+      robot_radius: 0.18        # TODO: MEASURE (m, chassis diagonal/2 + margin)
       plugins: ["obstacle_layer", "inflation_layer"]
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
@@ -177,8 +177,8 @@ local_costmap:
           obstacle_min_range: 0.0
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        inflation_radius: 0.45      # m — distance de "répulsion" autour des obstacles
-        cost_scaling_factor: 3.0    # Plus grand = coût qui décroît plus vite
+        inflation_radius: 0.45      # m -- "repulsion" distance around obstacles
+        cost_scaling_factor: 3.0    # Larger = cost decays faster
       always_send_full_costmap: true
 
 global_costmap:
@@ -190,7 +190,7 @@ global_costmap:
       update_frequency: 1.0
       publish_frequency: 1.0
       resolution: 0.05
-      robot_radius: 0.18        # TODO: À MESURER — même valeur que local_costmap
+      robot_radius: 0.18        # TODO: MEASURE -- same value as local_costmap
       track_unknown_space: true
       plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
       static_layer:
@@ -220,9 +220,9 @@ planner_server:
     expected_planner_frequency: 1.0
     planner_plugins: ["GridBased"]
     GridBased:
-      plugin: "nav2_navfn_planner/NavfnPlanner"  # Planificateur global simple et robuste
+      plugin: "nav2_navfn_planner/NavfnPlanner"  # Simple and robust global planner
       tolerance: 0.25
-      use_astar: false          # Dijkstra (défaut) — A* pas nécessaire ici
+      use_astar: false          # Dijkstra (default) -- A* not needed here
       allow_unknown: true
 
 behavior_server:
@@ -265,8 +265,8 @@ velocity_smoother:
     smoothing_frequency: 20.0
     scale_velocities: false
     feedback: "OPEN_LOOP"
-    # Vitesses [vx, vy, wz] — vy ≠ 0 car holonome.
-    # TODO: À MESURER/VALIDER avec les moteurs réels
+    # Velocities [vx, vy, wz] -- vy != 0 because holonomic.
+    # TODO: MEASURE/VALIDATE with the real motors
     max_velocity: [0.3, 0.3, 1.0]
     min_velocity: [-0.3, -0.3, -1.0]
     max_accel: [1.0, 1.0, 2.0]

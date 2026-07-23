@@ -1,13 +1,13 @@
-# Lancement du driver YDLIDAR X2 + TF statique base_link -> laser_frame.
-# Cible : ROS2 Humble.
+# Launch the YDLIDAR X2 driver + static TF base_link -> laser_frame.
+# Target: ROS2 Humble.
 #
-# Usage :
+# Usage:
 #   ros2 launch slam_robot_bringup lidar.launch.py
 #   ros2 launch slam_robot_bringup lidar.launch.py port:=/dev/ttyUSB1
 #   ros2 launch slam_robot_bringup lidar.launch.py use_static_tf:=false
 #
-# use_static_tf:=false quand robot_state_publisher publie déjà la TF via
-# l'URDF (sinon deux publications concurrentes de la même transformée).
+# use_static_tf:=false when robot_state_publisher already publishes the TF via
+# the URDF (otherwise two concurrent publishers of the same transform).
 
 import os
 
@@ -31,20 +31,20 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'port',
             default_value='/dev/ttyUSB0',
-            description='Port série du LiDAR (vérifier avec ls /dev/ttyUSB*)'),
+            description='LiDAR serial port (check with ls /dev/ttyUSB*)'),
         DeclareLaunchArgument(
             'use_static_tf',
             default_value='true',
-            description='Publier la TF statique base_link->laser_frame '
-                        '(mettre false si robot_state_publisher est actif)'),
+            description='Publish the static TF base_link->laser_frame '
+                        '(set false if robot_state_publisher is active)'),
         DeclareLaunchArgument(
             'lidar_height',
-            default_value='0.20',   # TODO: À MESURER — hauteur du plan laser (m)
-            description='Hauteur du LiDAR au-dessus de base_link (m)'),
+            default_value='0.20',   # TODO: MEASURE -- laser plane height (m)
+            description='LiDAR height above base_link (m)'),
 
-        # --- Driver YDLIDAR ---
-        # Les paramètres viennent de config/ydlidar_x2.yaml ; le port passé en
-        # argument de launch écrase celui du yaml (le dict a priorité).
+        # --- YDLIDAR driver ---
+        # Parameters come from config/ydlidar_x2.yaml; the port passed as a
+        # launch argument overrides the one in the yaml (the dict takes priority).
         Node(
             package='ydlidar_ros2_driver',
             executable='ydlidar_ros2_driver_node',
@@ -53,8 +53,8 @@ def generate_launch_description():
             parameters=[lidar_params, {'port': port}],
         ),
 
-        # --- TF statique provisoire base_link -> laser_frame ---
-        # À remplacer par l'URDF mesuré (robot_state_publisher) dès que possible.
+        # --- Provisional static TF base_link -> laser_frame ---
+        # Replace with the measured URDF (robot_state_publisher) as soon as possible.
         Node(
             package='tf2_ros',
             executable='static_transform_publisher',
