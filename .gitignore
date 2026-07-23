@@ -1,0 +1,32 @@
+# ROS2 / colcon build artifacts
+build/
+install/
+log/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Editors / OS
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+
+# Local, machine-specific or sensitive files (keep out of history)
+*.local.yaml
+*.local.yml
+secrets.yaml
+credentials.*
+*.pem
+*.key
+.env
+
+# Generated maps and diagnostics
+maps/
+*.pgm
+frames.pdf
+frames.gv

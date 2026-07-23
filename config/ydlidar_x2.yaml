@@ -1,0 +1,40 @@
+# Configuration du YDLIDAR X2 (boîtier adaptateur UART/USB).
+# Basée sur le profil officiel X2.yaml du package ydlidar_ros2_driver,
+# copiée ici pour pouvoir la modifier sans toucher au package du driver.
+ydlidar_ros2_driver_node:
+  ros__parameters:
+    # --- Connexion série ---
+    port: /dev/ttyUSB0        # Port USB (vérifier avec : ls /dev/ttyUSB*)
+    baudrate: 115200          # Baudrate fixe du X2
+    lidar_type: 1             # 1 = LiDAR triangulation (famille X2/X4)
+    device_type: 0            # 0 = connexion série
+    isSingleChannel: true     # Le X2 est mono-canal (pas de commande moteur retour)
+    auto_reconnect: true      # Reconnexion auto si le port décroche
+
+    # --- Échantillonnage ---
+    sample_rate: 3            # 3 kHz = 3000 échantillons/s (fixe pour le X2)
+    abnormal_check_count: 4
+    fixed_resolution: true    # Résolution angulaire fixe dans le message /scan
+
+    # --- Orientation ---
+    reversion: false          # true = ajoute 180° (si le LiDAR est monté à l'envers)
+    inverted: false           # true = inverse le sens de rotation des angles
+    support_motor_dtr: true   # Contrôle du moteur via la broche DTR (adaptateur X2)
+
+    # --- Intensité (non supportée par le X2) ---
+    intensity: false
+    intensity_bit: 0
+
+    # --- Champ de vision et portée ---
+    angle_min: -180.0         # Champ complet 360°
+    angle_max: 180.0
+    range_min: 0.1            # Portée mini du X2 (m)
+    range_max: 12.0           # Portée maxi du X2 (m) — reportée dans slam_params.yaml
+    ignore_array: ""          # Secteurs angulaires à masquer, ex "-90,-80" (câbles, poteaux)
+
+    # --- Divers ---
+    frequency: 10.0           # Fréquence de rotation cible (Hz) — le X2 mono-canal
+                              # tourne en réalité à sa vitesse propre (~6-8 Hz)
+    frame_id: laser_frame     # Frame TF des scans — doit correspondre à l'URDF
+    invalid_range_is_inf: false
+    debug: false

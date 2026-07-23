@@ -1,0 +1,148 @@
+<?xml version="1.0"?>
+<!--
+  URDF du robot SLAM Mecanum.
+
+  Arbre des frames :
+    base_footprint (projection au sol)
+      └── base_link (centre géométrique du châssis)
+            ├── wheel_front_left_link
+            ├── wheel_front_right_link
+            ├── wheel_rear_left_link
+            ├── wheel_rear_right_link
+            ├── laser_frame   (YDLIDAR X2)
+            └── imu_link      (MPU-6050 sur l'Arduino)
+
+  Toutes les dimensions sont regroupées dans les propriétés ci-dessous.
+  Les roues sont attachées par des joints FIXES : elles sont purement
+  visuelles (pas besoin de joint_state_publisher). Si un jour tu veux les
+  voir tourner dans RViz, passe les joints en "continuous" et lance
+  joint_state_publisher.
+-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="slam_robot">
+
+  <!-- ================= DIMENSIONS À AJUSTER ================= -->
+
+  <!-- Demi-empattements : distance du centre du châssis à l'AXE des roues.
+       WHEELBASE_X = distance avant/arrière, WHEELBASE_Y = gauche/droite
+       (centre du châssis -> centre de la roue, PAS roue à roue). -->
+  <xacro:property name="wheelbase_x" value="0.15"/>   <!-- TODO: À MESURER (m) -->
+  <xacro:property name="wheelbase_y" value="0.15"/>   <!-- TODO: À MESURER (m) -->
+
+  <!-- Roues Mecanum Ø97 mm -->
+  <xacro:property name="wheel_radius" value="0.0485"/>
+  <xacro:property name="wheel_width"  value="0.040"/>  <!-- TODO: À MESURER (m) -->
+
+  <!-- Châssis (simple boîte pour le visuel) -->
+  <xacro:property name="chassis_length" value="0.28"/> <!-- TODO: À MESURER (m) -->
+  <xacro:property name="chassis_width"  value="0.24"/> <!-- TODO: À MESURER (m) -->
+  <xacro:property name="chassis_height" value="0.10"/> <!-- TODO: À MESURER (m) -->
+  <!-- Hauteur du CENTRE du châssis par rapport au sol -->
+  <xacro:property name="chassis_z_offset" value="${wheel_radius + 0.02}"/> <!-- TODO: À MESURER -->
+
+  <!-- LiDAR : position du centre optique par rapport à base_link.
+       Le X2 est supposé centré sur le châssis (x=0, y=0). -->
+  <xacro:property name="lidar_x" value="0.0"/>         <!-- TODO: À MESURER si décentré (m) -->
+  <xacro:property name="lidar_y" value="0.0"/>         <!-- TODO: À MESURER si décentré (m) -->
+  <!-- Hauteur du plan laser PAR RAPPORT AU SOL, on retranche l'offset du châssis -->
+  <xacro:property name="lidar_height_from_ground" value="0.20"/> <!-- TODO: À MESURER (m) -->
+  <xacro:property name="lidar_z" value="${lidar_height_from_ground - chassis_z_offset}"/>
+  <!-- Rotation du LiDAR autour de Z si son "avant" n'est pas aligné avec
+       l'avant du robot (ex : 3.14159 s'il est monté à l'envers). -->
+  <xacro:property name="lidar_yaw" value="0.0"/>       <!-- TODO: À VÉRIFIER (rad) -->
+
+  <!-- IMU MPU-6050 : position par rapport à base_link -->
+  <xacro:property name="imu_x" value="0.0"/>           <!-- TODO: À MESURER (m) -->
+  <xacro:property name="imu_y" value="0.0"/>           <!-- TODO: À MESURER (m) -->
+  <xacro:property name="imu_z" value="0.0"/>           <!-- TODO: À MESURER (m) -->
+
+  <!-- ================= COULEURS ================= -->
+  <material name="gris_chassis"><color rgba="0.4 0.4 0.4 1.0"/></material>
+  <material name="noir_roue"><color rgba="0.1 0.1 0.1 1.0"/></material>
+  <material name="bleu_lidar"><color rgba="0.1 0.3 0.8 1.0"/></material>
+  <material name="rouge_imu"><color rgba="0.8 0.1 0.1 1.0"/></material>
+
+  <!-- ================= BASE ================= -->
+
+  <!-- base_footprint : projection de base_link au sol (z = 0).
+       C'est la frame de référence utilisée par slam_toolbox et Nav2. -->
+  <link name="base_footprint"/>
+
+  <joint name="base_footprint_to_base_link" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <origin xyz="0 0 ${chassis_z_offset}" rpy="0 0 0"/>
+  </joint>
+
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <box size="${chassis_length} ${chassis_width} ${chassis_height}"/>
+      </geometry>
+      <material name="gris_chassis"/>
+    </visual>
+  </link>
+
+  <!-- ================= ROUES ================= -->
+
+  <!-- Macro roue : cylindre orienté axe Y (rotation de 90° autour de X).
+       reflect_x = +1 avant / -1 arrière ; reflect_y = +1 gauche / -1 droite -->
+  <xacro:macro name="roue" params="prefix reflect_x reflect_y">
+    <link name="wheel_${prefix}_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+        <material name="noir_roue"/>
+      </visual>
+    </link>
+    <joint name="wheel_${prefix}_joint" type="fixed">
+      <parent link="base_link"/>
+      <child link="wheel_${prefix}_link"/>
+      <!-- La roue est au niveau de son axe : z ramené à la hauteur de l'axe -->
+      <origin xyz="${reflect_x * wheelbase_x} ${reflect_y * wheelbase_y} ${wheel_radius - chassis_z_offset}"
+              rpy="0 0 0"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:roue prefix="front_left"  reflect_x="1"  reflect_y="1"/>
+  <xacro:roue prefix="front_right" reflect_x="1"  reflect_y="-1"/>
+  <xacro:roue prefix="rear_left"   reflect_x="-1" reflect_y="1"/>
+  <xacro:roue prefix="rear_right"  reflect_x="-1" reflect_y="-1"/>
+
+  <!-- ================= LIDAR ================= -->
+
+  <link name="laser_frame">
+    <visual>
+      <geometry>
+        <!-- Approximation du boîtier du YDLIDAR X2 -->
+        <cylinder radius="0.035" length="0.04"/>
+      </geometry>
+      <material name="bleu_lidar"/>
+    </visual>
+  </link>
+
+  <joint name="base_link_to_laser" type="fixed">
+    <parent link="base_link"/>
+    <child link="laser_frame"/>
+    <origin xyz="${lidar_x} ${lidar_y} ${lidar_z}" rpy="0 0 ${lidar_yaw}"/>
+  </joint>
+
+  <!-- ================= IMU ================= -->
+
+  <link name="imu_link">
+    <visual>
+      <geometry>
+        <box size="0.02 0.02 0.005"/>
+      </geometry>
+      <material name="rouge_imu"/>
+    </visual>
+  </link>
+
+  <joint name="base_link_to_imu" type="fixed">
+    <parent link="base_link"/>
+    <child link="imu_link"/>
+    <origin xyz="${imu_x} ${imu_y} ${imu_z}" rpy="0 0 0"/>
+  </joint>
+
+</robot>
